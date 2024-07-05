@@ -40,6 +40,7 @@ Including:
 Data: demo_DE-Hai.csv
 
 Files required: 
+
 1_Legacy_calculation_4_each_site.R
 8_Functions.R
 1_all_sites_data_record.csv
@@ -55,6 +56,7 @@ ii) make sure data and required files are in the same folder
 iii) run 1_Legacy_calculation_4_each_site.R
 
 Expected output:
+
 demo_output_DE-Hai_df_QC_GS_1.csv: original and processed variables
 
 demo_output_DE-Hai_droughts_1.csv: selected drought events
