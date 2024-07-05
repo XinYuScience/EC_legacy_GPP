@@ -12,7 +12,7 @@ if(cluster){
 }
 
 #source functions code
-source('Functions.R')
+source('8_Functions.R')
 
 #load packages
 library(ggplot2)
