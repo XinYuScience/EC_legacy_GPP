@@ -30,7 +30,8 @@ site_info<-read.csv('all_sites_data_record.csv')
 site_list<-site_info$site
 
 #set p=31 to use the demo_DE-Hai.csv to run the code for DE-Hai, a temperate forest in Germany
-for (p in 1:length(site_list)) {
+#p in 1:length(site_list)
+for (p in 31:31) {
   site<-site_info$site[p]
   
   tryCatch({
