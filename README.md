@@ -38,23 +38,35 @@ Including:
 
 ######## Demo ############6 files for demo###
 Data: demo_DE-Hai.csv
+
 Files required: 
 1_Legacy_calculation_4_each_site.R
 8_Functions.R
 1_all_sites_data_record.csv
+
 Instruction: 
 Reproducing all results requires data from all 76 investigated eddy covariance sites. But the core calculation is to quantify the drought legacy effects by running the 1_Legacy_calculation_4_each_site.R.
 Here, we provide the instruction on how to quantify drought legacy effects at DE-Hai, a temperate forest in Germany, in the following steps:
+
 i) install required R packages (see 1_Legacy_calculation_4_each_site.R for detailed information)
+
 ii) make sure data and required files are in the same folder
+
 iii) run 1_Legacy_calculation_4_each_site.R
+
 Expected output:
 demo_output_DE-Hai_df_QC_GS_1.csv: original and processed variables
+
 demo_output_DE-Hai_droughts_1.csv: selected drought events
+
 demo_output_stat_test_1.csv + demo_DE-Hai_legacy_effects_annual.tiff: figure for legacy effects in the post-drought years at the annual scale and significance level in '.csv' file
+
 demo_output_DE-Hai_diff_legacy_GPP_ending_1.csv: quantified legacy effects in the legacy periods
+
 deom_output_DE-Hai_diff_normal_GPP_ending_1.csv: quantified model uncertainty in the non-legacy periods
-Expected run time: ~10 minutes
+
+Expected run time: 
+~10 minutes
 
 ######## Instruction for use on own data #########
 1) The eddy covariance site data file should be in the standard FLUXNET2015 file format
