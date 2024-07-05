@@ -29,6 +29,7 @@ case_run<-''
 site_info<-read.csv('all_sites_data_record.csv')
 site_list<-site_info$site
 
+#set p=31 to use the demo_DE-Hai.csv to run the code for DE-Hai, a temperate forest in Germany
 for (p in 1:length(site_list)) {
   site<-site_info$site[p]
   
@@ -89,7 +90,9 @@ for (p in 1:length(site_list)) {
       DD_file<-list.files(full.names = FALSE, path = target_folder,pattern = 'FULLSET_DD') # daily data's filename
       
       #read data
-      df<-read.csv(glue::glue('{target_folder}/{DD_file}'),na.strings = -9999) # read daily data
+      # this is the code for running multiple site but also see the code for the demo DE-Hai
+      #df<-read.csv(glue::glue('{target_folder}/{DD_file}'),na.strings = -9999) # read daily data
+      df<-read.csv('demo_DE-Hai.csv',na.strings = -9999) 
       df<-create_doy(data=df)
       #rename
       df<-df %>% rename(
