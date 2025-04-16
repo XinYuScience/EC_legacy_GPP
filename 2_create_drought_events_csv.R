@@ -6,14 +6,19 @@ library(dplyr)
 
 cluster<-T
 if(cluster){
-  rootpath<-''
+  rootpath<-'/Net/Groups/BGI/people/xyu/legacy_EC'
 }else{
-  rootpath<-''
+  rootpath<-'X:/legacy_EC'
 }
 
-site_info<-read.csv('all_sites_data_record.csv')
+site_info<-read.csv(paste0(rootpath,'/2nd_writing_SA/response_code/1_all_sites_data_record.csv'))
 
 site_list<-site_info$site
+
+ntree<-400
+mtry<-4
+nodesize<-4
+case_run<-paste0('OOB_run_',ntree,'_',mtry,'_',nodesize)
 
 sd<-1
 
@@ -22,7 +27,8 @@ drought_events_list <- data.frame(matrix(ncol = length(column_names), nrow = 0))
 colnames(drought_events_list) <- column_names
 for (i in 1:length(site_list)) {
   site<-site_list[i]
-  files<-list.files(full.names = FALSE, path = '',pattern = paste0(site,'_droughts_',sd)) # daily data's filename
+  files<-list.files(full.names = FALSE, path = paste0(rootpath,'/2nd_writing_SA/response_code/droughts_',case_run),
+                    pattern = paste0(site,'_droughts_',sd)) # daily data's filename
   
   if(length(files)==0){
     temp<-data.frame(
@@ -34,7 +40,7 @@ for (i in 1:length(site_list)) {
     drought_events_list<-rbind(drought_events_list,temp)
     next
   }
-  droughts<-read.csv('')
+  droughts<-read.csv(paste0(rootpath,'/2nd_writing_SA/response_code/droughts_',case_run,'/',site,'_droughts_',sd,'.csv'))
   droughts<-droughts[order(droughts$year, decreasing = FALSE),]
   if(nrow(droughts)==1){
     temp<-data.frame(
@@ -64,4 +70,4 @@ for (i in 1:length(site_list)) {
 
 drought_events_list$PFT<-site_info$PFT[match(drought_events_list$site,site_info$site)]
 drought_events_list<-drought_events_list %>% select(site,PFT,everything())
-write.csv(drought_events_list,'.csv',row.names = F)
+write.csv(drought_events_list,paste0(rootpath,'/2nd_writing_SA/response_code/drought_events_list_',case_run,'.csv'),row.names = F)

@@ -7,14 +7,17 @@ library(tidyr)
 
 cluster<-T
 if(cluster){
-  rootpath<-''
+  rootpath<-'/Net/Groups/BGI/people/xyu/legacy_EC'
 }else{
-  rootpath<-''
+  rootpath<-'X:/legacy_EC'
 }
 
-case_run<-''
+ntree<-400
+mtry<-4
+nodesize<-4
+case_run<-paste0('OOB_run_',ntree,'_',mtry,'_',nodesize)
 
-drought_events_list<-read.csv('.csv')
+drought_events_list<-read.csv(paste0(rootpath,'/2nd_writing_SA/response_code/drought_events_list_',case_run,'.csv'))
 #legacy
 drought_events_list$concurrent<-NA
 drought_events_list$legacy<-NA
@@ -33,7 +36,8 @@ for (i in 1:nrow(drought_events_list)) {
   site<-drought_events_list$site[i]
   tryCatch({
     #if files exist
-    files<-list.files(full.names = FALSE, path = paste0(rootpath,'/results/'),pattern = paste0(site,'_diff_legacy_GPP_ending')) # daily data's filename
+    files<-list.files(full.names = FALSE, path = paste0(rootpath,'/2nd_writing_SA/response_code/results_',case_run),
+                      pattern = paste0(site,'_diff_legacy_GPP_ending')) # daily data's filename
     
     
     if(length(files)==0){
@@ -41,7 +45,7 @@ for (i in 1:nrow(drought_events_list)) {
     }
     
     #read dataframe
-    df_QC_GS<-read.csv(paste0(rootpath,'/df_QC_GS/',site,'_df_QC_GS_1.csv'))
+    df_QC_GS<-read.csv(paste0(rootpath,'/2nd_writing_SA/response_code/df_QC_GS_',case_run,'/',site,'_df_QC_GS_1.csv'))
     mean_seasonal_cycle<-df_QC_GS %>% group_by(doy) %>%
       summarise(GPP=mean(GPP,na.rm=T),
                 doy_GS=ifelse(sum(doy_GS,na.rm = T)>0,1,0))
@@ -50,8 +54,8 @@ for (i in 1:nrow(drought_events_list)) {
     doy_GS<-which(mean_seasonal_cycle$doy_GS==1)
     st_gs<-doy_GS[1]
 	#read legacy effects and uncertainty
-    diff_normal<-read.csv(paste0(rootpath,'/results/',site,'_diff_normal_GPP_ending_1.csv'))
-    diff_legacy<-read.csv(paste0(rootpath,'/results/',site,'_diff_legacy_GPP_ending_1.csv'))
+    diff_normal<-read.csv(paste0(rootpath,'/2nd_writing_SA/response_code/results_',case_run,'/',site,'_diff_normal_GPP_ending_1.csv'))
+    diff_legacy<-read.csv(paste0(rootpath,'/2nd_writing_SA/response_code/results_',case_run,'/',site,'_diff_legacy_GPP_ending_1.csv'))
 	#calculate the median of actual and potential GPP anom from multiple runs
     df_legacy_quan<-diff_legacy %>% group_by(year,doy) %>%
       summarise(GPP_Anom_rf = median(GPP_Anom_rf,na.rm = T),
@@ -75,7 +79,7 @@ for (i in 1:nrow(drought_events_list)) {
     }
     
     
-    stat_test<-read.csv(paste0(rootpath,'/stat_test_11.0_',case_run,'/',site,'_stat_test_1.csv'))
+    stat_test<-read.csv(paste0(rootpath,'/2nd_writing_SA/response_code/stat_test_',case_run,'/',site,'_stat_test_1.csv'))
     stat_test[is.na(stat_test)] <- 0
     
     df_GPP_mean<-df_QC_GS %>% group_by(year) %>%
@@ -194,7 +198,7 @@ for (i in 1:nrow(drought_events_list)) {
 
     
   }, error = function(e) {
-    outputFile <-file(paste0(rootpath,'/error_summary/',site,'_error.txt'))
+    outputFile <-file(paste0(rootpath,'/2nd_writing_SA/response_code/error_summary/',site,'_error.txt'))
     writeLines(as.character(e), outputFile)
     close(outputFile)
   })
@@ -203,7 +207,7 @@ for (i in 1:nrow(drought_events_list)) {
   print(i)
 }
 
-factors<-read.csv('factors.csv')
+factors<-read.csv(paste0(rootpath,'/2nd_writing_SA/response_code/2_factors.csv'))
 ########### climate #########
 #aridity
 drought_events_list$aridity<-factors$aridity[match(drought_events_list$site,factors$site)]
@@ -238,4 +242,4 @@ drought_events_list$mean_HSM50<-factors$mean_HSM50[match(drought_events_list$sit
 #standard deviation of HSM50
 drought_events_list$sd_HSM50<-factors$sd_HSM50[match(drought_events_list$site,factors$site)]
 
-write.csv('.csv',row.names = F)
+write.csv(drought_events_list,paste0(rootpath,'/2nd_writing_SA/response_code/drought_legacy_effects_',case_run,'.csv'),row.names = F)

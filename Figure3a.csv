@@ -1,0 +1,23 @@
+driver,color,value
+drought duration,0,1
+drought intensity,0,1
+drought timing,0,1
+concurrent effects,0,1
+concurrent impact peak,0,1
+pre-drought water limitation,0,1
+post-drought water limitation,0,1
+aridity,0,1
+TA (mean),0,1
+P (CV),0,1
+TA (CV),0,1
+forest vs non-forest,1,1
+age,0,1
+height (max.),0,1
+species richness,0,1
+rooting depth,0,1
+wood density (mean),0,1
+wood density (s.d.),0,1
+P50 (mean),1,1
+P50 (s.d.),0,1
+HSM50 (mean),0,1
+HSM50 (s.d.),0,1

@@ -3,7 +3,7 @@
 Author: Xin Yu
 Email:xyu@bgc-jena.mpg.de
 
-CODE for the manuscript: Widespread but divergent drought legacy effects on gross primary productivity
+CODE for the manuscript: Widespread but divergent drought legacy effects on gross primary productivity across biomes, submitted to Science Advances
 System requirements: no operating system dependence; R version is 4.0.3
 Installation guide: no installation is needed
 
@@ -11,30 +11,41 @@ Including:
 
 ###7 .R files for the calculation###
 
+0_Functions:The code is the self-defined functions to support calculation
+
 1_Legacy_calculation_4_each_site.R: The code is to identify drought events and quantify drought legacy effects on GPP for eddy covariance sites
 
 2_create_drought_events_csv.R: The code is to create a .csv file which includes the identified drought events
 
 3_summary_all_sites.R: The code is for post-processing to summarize the legacy effects of all indentifed drought events and quantify potential drivers
 
-4_causal_analysis_all_biomes.R: The code is to identify the drivers of legacy effects for all biomes using HSIC perm, HSIC gamma, and KCIT
+4_Extract_ERA5_4SPEI.R: to extract era5_land data at eddy covariance sites for the calculation of SPEI
 
-5_causal_analysis_forests.R: The code is to identify the drivers of legacy effects for forests using HSIC perm, HSIC gamma, and KCIT
+5_SPEI_calculation_PWM.R: to calculate daily SPEI using Probability-Weighted Moments
 
-6_SVR.R:The code is to develop a support vector regression model to evaluate the relationship 
-#between legacy effects in forests and their drivers, i.e. species richness and wood density variability
+6_SPEI_drought_flag: to flag the defined drought events with SPEI
 
-7_SHAP.R:The code is to calculate the SHAP values of predictors for GPP during legacy and non-legacy periods
+7_causal_analysis_all_biomes.R: The code is to identify the drivers of legacy effects for all biomes using HSIC perm, HSIC gamma, and KCIT
 
-8_Functions.R:The code is the self-defined functions to support calculation
+8_causal_analysis_forests.R: The code is to identify the drivers of legacy effects for forests using HSIC perm, HSIC gamma, and KCIT
+
+9_SHAP.R:The code is to calculate the SHAP values of predictors for GPP during legacy and non-legacy periods
 
 
 ###3 .csv files as support information for the calculation###
 
 1_all_sites_data_record.csv: The file includes the information of investigated eddy coraviance sites
 2_factors.csv: The file includes the climate, site metric, and plant functional traits of investigated eddy covariance sites
+Figure3a.csv: the support information for the Figure 3a
 
-###4 .R files for plotting the main figures###
+###3 .R files + 1 .pptx file for plotting the main figures###
+Figure1.R
+Figure2.R
+Figure3.R
+Figure3.pptx: add circles to Figure3
+
+### supplement ###
+.R files to plot the supplementary figures and associated calculation scripts.
 
 ######## Demo ############6 files for demo###
 Data: demo_DE-Hai.csv
@@ -42,7 +53,7 @@ Data: demo_DE-Hai.csv
 Files required: 
 
 1_Legacy_calculation_4_each_site.R
-8_Functions.R
+0_Functions.R
 1_all_sites_data_record.csv
 
 Instruction: 

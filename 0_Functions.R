@@ -63,7 +63,7 @@ simpleWAI_ET  <- function(precip=NULL, LE=NULL, awc=awc,spin_up=FALSE) {
 
 #quantify legacy effects using non-QC data but training the random forest model based on QC data
 quantify_legacy_effects_non_QC<-function(data=data,figures_folder=figures_folder,site=site,
-                                  vars=vars,EVI_flag=EVI_flag){
+                                  vars=vars,EVI_flag=EVI_flag,ntree=ntree,mtry=mtry,nodesize=nodesize){
   #browser()
   #select training data
   training_data<-data %>% filter(group==0)
@@ -92,8 +92,8 @@ quantify_legacy_effects_non_QC<-function(data=data,figures_folder=figures_folder
     legacy_data$GPP_Anom_rf<-rep(NA,length(legacy_data$Date))
     legacy_data$GPP_Anom_rf_diff<-rep(NA,length(legacy_data$Date))
   }else{
-    rf<-randomForest(formula = GPP_Anom ~ .,data = train,ntree=400,na.action = na.exclude,
-                     importance=T,mtry=4,nodesize=5)
+    rf<-randomForest(formula = GPP_Anom ~ .,data = train,ntree=ntree,na.action = na.exclude,
+                     importance=T,mtry=mtry,nodesize=nodesize)
     
     var_explained<-rf$rsq[length(rf$rsq)]
     
@@ -107,11 +107,64 @@ quantify_legacy_effects_non_QC<-function(data=data,figures_folder=figures_folder
   diff<-list(legacy=legacy,var_explained=var_explained)
   return(diff)
 }
+#quantify legacy effects using non-QC data but training the Generalized Additive Model based on QC data
+quantify_legacy_effects_GAM_non_QC <- function(data = data, figures_folder = figures_folder, site = site,
+                                           vars = vars, EVI_flag = EVI_flag, smooth_terms = smooth_terms) {
+  # Select training data
+  training_data <- data %>% filter(group == 0)
+  legacy_data <- data %>% filter(group == 1)
+  
+  if (EVI_flag == 1) {
+    vars <- c(vars, 'EVI')
+  }
+  
+  # Add '_Anom' suffix to variables
+  vars <- paste(vars, '_Anom', sep = '')
+  
+  # Prepare training and legacy data
+  train <- training_data %>% dplyr::select(all_of(vars), 'doy')
+  test <- train %>% drop_na()
+  legacy_data <- legacy_data %>% select(-c(GPP_Anom, SW_IN_Anom, TA_Anom, VPD_Anom)) %>% rename(
+    GPP_Anom = GPP_non_QC_Anom,
+    SW_IN_Anom = SW_IN_non_QC_Anom,
+    TA_Anom = TA_non_QC_Anom,
+    VPD_Anom = VPD_non_QC_Anom
+  )
+  
+  if (length(test$GPP_Anom) == 0) {
+    var_explained <- NA
+    
+    legacy_data$GPP_Anom_gam <- rep(NA, length(legacy_data$Date))
+    legacy_data$GPP_Anom_gam_diff <- rep(NA, length(legacy_data$Date))
+  } else {
+    # Fit Generalized Additive Model (GAM)
+    library(mgcv)
+    #browser()
+    vars <- vars[vars != 'GPP_Anom']
+    formula_gam <- as.formula(paste("GPP_Anom ~", 
+                                    paste(paste0("s(", c(vars,'doy'), ", k = ", smooth_terms, ")"), collapse = " + ")))
+    
+    gam_model <- gam(formula = formula_gam, data = train, method = "REML")
+    
+    # Calculate R-squared (adjusted) to estimate variance explained
+    var_explained <- summary(gam_model)$r.sq
+    
+    # Predict using the GAM model
+    legacy_data$GPP_Anom_gam <- predict(gam_model, newdata = legacy_data)
+    legacy_data$GPP_Anom_gam_diff <- legacy_data$GPP_Anom - legacy_data$GPP_Anom_gam
+  }
+  
+  # Return diff
+  legacy <- legacy_data %>% dplyr::select(Date, year, week, doy, GPP_Anom, GPP_Anom_gam, GPP_Anom_gam_diff)
+  diff <- list(legacy = legacy, var_explained = var_explained)
+  return(diff)
+}
+
 
 #quantify legacy effects considering uncertainty using non-QC data but training the random forest model based on QC data
 quantify_legacy_effects_non_QC_uncertainty<-function(data=data,random_normal_year=random_normal_year,
                                      figures_folder=figures_folder,site=site,
-                                     vars=vars,EVI_flag=EVI_flag){
+                                     vars=vars,EVI_flag=EVI_flag,ntree=ntree,mtry=mtry,nodesize=nodesize){
   #select training data
   training_data<-data %>% filter(group==0 & !(year %in% random_normal_year))
   legacy_data<-data %>% filter(group==1)
@@ -149,8 +202,8 @@ quantify_legacy_effects_non_QC_uncertainty<-function(data=data,random_normal_yea
     legacy_data$GPP_Anom_rf_diff<-rep(NA,length(legacy_data$Date))
     legacy_data$normal_year<-rep(random_normal_year,length(legacy_data$Date))
   }else{
-    rf<-randomForest(formula = GPP_Anom ~ .,data = train,ntree=400,na.action = na.exclude,
-                     importance=T,mtry=4,nodesize=5)
+    rf<-randomForest(formula = GPP_Anom ~ .,data = train,ntree=ntree,na.action = na.exclude,
+                     importance=T,mtry=mtry,nodesize=nodesize)
     
     
     var_explained<-rf$rsq[length(rf$rsq)]
@@ -172,6 +225,78 @@ quantify_legacy_effects_non_QC_uncertainty<-function(data=data,random_normal_yea
   diff<-list(normal=normal,legacy=legacy,var_explained=var_explained)
   return(diff)
 }
+
+#quantify legacy effects considering uncertainty using non-QC data but training the Generalized Additive model based on QC data
+quantify_legacy_effects_GAM_non_QC_uncertainty <- function(data = data, random_normal_year = random_normal_year,
+                                                       figures_folder = figures_folder, site = site,
+                                                       vars = vars, EVI_flag = EVI_flag, smooth_terms = smooth_terms) {
+  # Select training data
+  training_data <- data %>% filter(group == 0 & !(year %in% random_normal_year))
+  legacy_data <- data %>% filter(group == 1)
+  random_normal_data <- data %>% filter(group == 0 & (year %in% random_normal_year))
+  
+  if (EVI_flag == 1) {
+    vars <- c(vars, 'EVI')
+  }
+  
+  # Add '_Anom' suffix to variables
+  vars <- paste(vars, '_Anom', sep = '')
+  
+  # Prepare training and legacy data
+  train <- training_data %>% dplyr::select(all_of(vars), 'doy')
+  test <- train %>% drop_na()
+  legacy_data <- legacy_data %>% select(-c(GPP_Anom, SW_IN_Anom, TA_Anom, VPD_Anom)) %>% rename(
+    GPP_Anom = GPP_non_QC_Anom,
+    SW_IN_Anom = SW_IN_non_QC_Anom,
+    TA_Anom = TA_non_QC_Anom,
+    VPD_Anom = VPD_non_QC_Anom
+  )
+  
+  if (EVI_flag == 1) {
+    legacy_data <- legacy_data %>% select(-c(EVI_Anom)) %>% rename(
+      EVI_Anom = EVI_non_QC_Anom
+    )
+  }
+  
+  if (length(test$GPP_Anom) == 0) {
+    var_explained <- NA
+    
+    random_normal_data$GPP_Anom_gam <- rep(NA, length(random_normal_data$Date))
+    random_normal_data$GPP_Anom_gam_diff <- rep(NA, length(random_normal_data$Date))
+    
+    legacy_data$GPP_Anom_gam <- rep(NA, length(legacy_data$Date))
+    legacy_data$GPP_Anom_gam_diff <- rep(NA, length(legacy_data$Date))
+    legacy_data$normal_year <- rep(random_normal_year, length(legacy_data$Date))
+  } else {
+    # Fit Generalized Additive Model (GAM)
+    library(mgcv)
+    vars <- vars[vars != 'GPP_Anom']
+    formula_gam <- as.formula(paste("GPP_Anom ~", 
+                                    paste(paste0("s(", c(vars,'doy'), ", k = ", smooth_terms, ")"), collapse = " + ")))
+    
+    gam_model <- gam(formula = formula_gam, data = train, method = "REML")
+    
+    # Calculate R-squared (adjusted) to estimate variance explained
+    var_explained <- summary(gam_model)$r.sq
+    
+    # Residuals calculation for normal years
+    random_normal_data$GPP_Anom_gam <- predict(gam_model, newdata = random_normal_data)
+    random_normal_data$GPP_Anom_gam_diff <- random_normal_data$GPP_Anom - random_normal_data$GPP_Anom_gam
+    
+    # Residuals calculation for legacy data
+    legacy_data$GPP_Anom_gam <- predict(gam_model, newdata = legacy_data)
+    legacy_data$GPP_Anom_gam_diff <- legacy_data$GPP_Anom - legacy_data$GPP_Anom_gam
+    legacy_data$normal_year <- rep(random_normal_year, length(legacy_data$Date))
+  }
+  
+  # Return diff
+  normal <- random_normal_data %>% dplyr::select(Date, year, week, doy, GPP_Anom, GPP_Anom_gam, GPP_Anom_gam_diff)
+  legacy <- legacy_data %>% dplyr::select(Date, year, week, doy, GPP_Anom, GPP_Anom_gam, GPP_Anom_gam_diff, normal_year)
+  
+  diff <- list(normal = normal, legacy = legacy, var_explained = var_explained)
+  return(diff)
+}
+
 
 #quality control
 quality_control<-function(data=data,vars=vars,site=site,flag=0.7,threshold=0){

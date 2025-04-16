@@ -1,15 +1,17 @@
 #Author: Xin Yu
 #Email: xyu@bgc-jena.mpg.de
-#The code is to calculate the SHAP values of predictors for GPP during legacy and non-legacy periods
 cluster<-T
 if(cluster){
-  rootpath<-''
-  datapath<-''
-  scratch_path<-''
+  rootpath<-'/Net/Groups/BGI/people/xyu/legacy_EC'
+  datapath<-'/Net/Groups/BGI/people/xyu'
+  scratch_path<-'/Net/Groups/BGI/scratch/xyu'
 }else{
-  rootpath<-''
-  scratch_path<-''
+  rootpath<-'X:/legacy_EC'
+  scratch_path<-'Z:/scratch/xyu'
 }
+
+#source functions code
+source(paste0(rootpath,'/2nd_writing_SA/response_code/0_Functions.R'))
 
 #load packages
 library(ggplot2)
@@ -20,7 +22,8 @@ library(rstatix)
 library(iml)
 library(ggpubr)
 
-drought_events_list<-read.csv(paste0('drought_events_list_legacy.csv'))
+case_run<-'spin_up_00_OzFlux_weekly_gap_QC_mix_duration'
+drought_events_list<-read.csv(paste0('/Net/Groups/BGI/people/xyu/legacy_EC/2nd_study/drought_events_list_legacy_11.0_',case_run,'_GPP_mean.csv'))
 
 drought_events_list$SW_IN_dep<-0
 drought_events_list$TA_dep<-0
@@ -28,7 +31,8 @@ drought_events_list$VPD_dep<-0
 drought_events_list$WAI_dep<-0
 drought_events_list$doy_dep<-0
 
-for (p in 1:nrow(drought_events_list)) {
+#1:nrow(drought_events_list)
+for (p in 1:83) {
   
   if(is.na(drought_events_list$legacy[p])){
     next
@@ -85,13 +89,11 @@ for (p in 1:nrow(drought_events_list)) {
     df_no_legacy_non_na$WAI_SHAP<-NA
     df_no_legacy_non_na$doy_SHAP<-NA
     
-	#develop random forest model for non-legacy periods
     X_no_legacy<-df_no_legacy_non_na %>% select(SW_IN_Anom,TA_Anom,VPD_Anom,WAI_Anom,doy)
     y_no_legacy<-df_no_legacy_non_na$GPP_Anom
     rf_no_legacy<-randomForest(x=X_no_legacy,y=y_no_legacy,ntree=400,na.action = na.exclude,
                      importance=T,mtry=5,nodesize=5,localImp = T)
     
-	#calculate SHAP for every observation
     explainer<-Predictor$new(rf_no_legacy,data = X_no_legacy,y=y_no_legacy)
     shap_no_legacy_values <- matrix(NA, nrow = nrow(df_no_legacy_non_na), ncol = 5)
     colnames(shap_no_legacy_values) <- c("SW_IN_SHAP", "TA_SHAP", "VPD_SHAP", "WAI_SHAP", "doy_SHAP")
@@ -122,7 +124,6 @@ for (p in 1:nrow(drought_events_list)) {
     
     print('hello')
     
-	#non-legacy period
     df_legacy_non_na<-df_legacy %>% select(year,doy,GPP_Anom,SW_IN_Anom,TA_Anom,VPD_Anom,WAI_Anom) %>%
       tidyr::drop_na()
     
@@ -132,13 +133,10 @@ for (p in 1:nrow(drought_events_list)) {
     df_legacy_non_na$WAI_SHAP<-NA
     df_legacy_non_na$doy_SHAP<-NA
     
-	#develop random forest model for legacy periods
     X_legacy<-df_legacy_non_na %>% select(SW_IN_Anom,TA_Anom,VPD_Anom,WAI_Anom,doy)
     y_legacy<-df_legacy_non_na$GPP_Anom
     rf_legacy<-randomForest(x=X_legacy,y=y_legacy,ntree=400,na.action = na.exclude,
                                importance=T,mtry=5,nodesize=5,localImp = T)
-							   	
-	#calculate SHAP for every observation
     explainer_legacy<-Predictor$new(rf_legacy,data = X_legacy,y=y_legacy)
     shap_legacy_values <- matrix(NA, nrow = nrow(df_legacy_non_na), ncol = 5)
     colnames(shap_legacy_values) <- c("SW_IN_SHAP", "TA_SHAP", "VPD_SHAP", "WAI_SHAP", "doy_SHAP")
@@ -164,7 +162,7 @@ for (p in 1:nrow(drought_events_list)) {
     gc()
     print('hello3')
   }, error = function(e) {
-    outputFile <-file('error.txt')
+    outputFile <-file(paste0(rootpath,'/2nd_study/error_shap/',study_site,'_error.txt'))
     writeLines(as.character(e), outputFile)
     close(outputFile)
   })

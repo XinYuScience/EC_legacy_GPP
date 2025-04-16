@@ -12,7 +12,7 @@ if(cluster){
 }
 
 #source functions code
-source(paste0(rootpath,'/2nd_writing_SA/response_code/0_Functions.R'))
+source(paste0(rootpath,'/2nd_writing_SA/response_code/8_Functions.R'))
 
 #load packages
 library(ggplot2)
@@ -27,7 +27,7 @@ library(ggpubr,lib.loc = '/Net/Groups/BGI/scratch/xyu/R_libs/x86_64-pc-linux-gnu
 ntree<-400
 mtry<-4
 nodesize<-5
-case_run<-paste0('OOB_run_',ntree,'_',mtry,'_',nodesize)
+case_run<-'recovery_boxplot'
 site_info<-read.csv(paste0(rootpath,'/2nd_writing_SA/response_code/1_all_sites_data_record.csv'))
 site_list<-site_info$site
 
@@ -542,109 +542,14 @@ for (p in 1:length(site_list)) {
     }
     write.csv(stat,file = paste0(folder_path_stat,site,'_stat_test_',sd,'.csv'),row.names = F)
 
-    df_QC_GS$legacy<-0
-    droughts$legacy_years_length<-0
-
-    #quantify legacy effects again after identifying legacy periods
-    if(drought_number==1){
-      df_QC_GS$legacy[which(df_QC_GS$year==df_QC_GS$year[drought_end] & df_QC_GS$doy>df_QC_GS$doy[drought_end])]<-1
-      df_QC_GS$legacy[which(df_QC_GS$year>df_QC_GS$year[drought_end] &
-                              df_QC_GS$year<=df_QC_GS$year[drought_end]+legacy_years_length-1)]<-1
-      droughts$legacy_years_length<-legacy_years_length
-      droughts$no_record<-no_record
-    }else{
-      #1st drought in order
-      df_QC_GS$legacy[which(df_QC_GS$year==df_QC_GS$year[drought_end_1] & df_QC_GS$doy>df_QC_GS$doy[drought_end_1])]<-1
-      df_QC_GS$legacy[which(df_QC_GS$year>df_QC_GS$year[drought_end_1] &
-                              df_QC_GS$year<=df_QC_GS$year[drought_end_1]+legacy_years_length_1-1)]<-1
-
-      #not identify the first drought but only keep the 2nd drought
-      #if the 2nd drought occured in the legacy periods of the 1st drought
-      temp_test<-df_QC_GS %>% filter(legacy==1) %>% filter(drought_events==drought_events_number[2])
-      if(length(temp_test$Date)>0){
-        df_QC_GS$legacy[temp_2]<-0 #keep the legacy periods of the 1st drought and reset the 2nd drought as non-legacy periods
-        finish_1=TRUE
-      }
-
-      #2nd drought in order
-      df_QC_GS$legacy[which(df_QC_GS$year==df_QC_GS$year[drought_end_2] & df_QC_GS$doy>df_QC_GS$doy[drought_end_2])]<-1
-      df_QC_GS$legacy[which(df_QC_GS$year>df_QC_GS$year[drought_end_2] &
-                              df_QC_GS$year<=df_QC_GS$year[drought_end_2]+legacy_years_length_2-1)]<-1
-      droughts$legacy_years_length[droughts$year==df_QC_GS$year[drought_end_1]]<-legacy_years_length_1
-      droughts$legacy_years_length[droughts$year==df_QC_GS$year[drought_end_2]]<-legacy_years_length_2
-      droughts$no_record[droughts$year==df_QC_GS$year[drought_end_1]]<-0
-      droughts$no_record[droughts$year==df_QC_GS$year[drought_end_2]]<-no_record_2
+  #plot the legacy effects at the scale with significance levels
+    folder_path_sig<-paste0(rootpath,'/2nd_writing_SA/response_code/legacy_weekly_sig_',case_run,'/')
+    if (!dir.exists(folder_path_sig)) {
+      dir.create(folder_path_sig)
     }
-    folder_path_droughts<-paste0(rootpath,'/2nd_writing_SA/response_code/droughts_',case_run,'/')
-    if (!dir.exists(folder_path_droughts)) {
-      dir.create(folder_path_droughts)
-    }
-    write.csv(droughts,file = paste0(folder_path_droughts,site,'_droughts_',sd,'.csv'),row.names = F)
-
-    #browser()
-    # #flag legacy and non-legacy periods
-    df_QC_GS$group<-0 #non-legacy
-    df_QC_GS$group[df_QC_GS$legacy==1]<-1 #legacy
-    temp_normal_year<-df_QC_GS %>% filter(legacy==1)
-    normal_year<-unique(df_QC_GS$year)[!(unique(df_QC_GS$year) %in% unique(temp_normal_year$year))]
-    #
-    # ###### running the quantification algorithm ######
-    diff_normal_GPP<-NA
-    diff_legacy_GPP<-NA
-    var_ex_GPP<-rep(NA,length(normal_year))
-    for(k in 1:length(normal_year)){
-      uncertainty_year<-normal_year[k]
-      diff_GPP<-quantify_legacy_effects_non_QC_uncertainty(data=df_QC_GS,random_normal_year=uncertainty_year,
-                                                    figures_folder = figures_folder,site=site,vars = c(vars_rf_GPP,'WAI'),EVI_flag = 0,
-                                                    ntree=ntree,mtry=mtry,nodesize=nodesize)
-
-      var_ex_GPP[k]<-diff_GPP$var_explained
-      if (k==1){
-        diff_normal_GPP<-diff_GPP$normal
-        diff_legacy_GPP<-diff_GPP$legacy
-      }else{
-        diff_normal_GPP<-rbind(diff_normal_GPP,diff_GPP$normal)
-        diff_legacy_GPP<-rbind(diff_legacy_GPP,diff_GPP$legacy)
-      }
-    }
-    var_ex_GPP<-data.frame(var_ex=var_ex_GPP,year=normal_year)
-
-    #output OOB score:
-    folder_path_OOB<-paste0(rootpath,'/2nd_writing_SA/response_code/OOB_',case_run,'/')
-    if (!dir.exists(folder_path_OOB)) {
-      dir.create(folder_path_OOB)
-    }
-    write.csv(var_ex_GPP,file = paste0(folder_path_OOB,site,'_OOB_',sd,'.csv'),row.names = F)
+    write.csv(legacy_weekly,file = paste0(folder_path_sig,site,'_sig_',sd,'.csv'),row.names = F)
     
-	#plot the legacy effects at the scale with significance levels
-    # folder_path_annual<-paste0(rootpath,'/2nd_writing_SA/response_code/annual_legacy_effects_',case_run,'/')
-    # if (!dir.exists(folder_path_annual)) {
-    #   dir.create(folder_path_annual)
-    # }
-    # figure_file<-paste0(folder_path_annual,site,'_legacy_effects_annual.tiff')
-    # tiff(figure_file,width = 1600,height = 1200,units = 'px', res=200)
-    # a<-ggplot(legacy_weekly,aes(x=year,y=residual_GPP))+
-    #   geom_boxplot()+
-    #   stat_pvalue_manual(stat.test_one, label = 'p.signif')+
-    #   ylab('legacy effects in GPP (gC m-2 d-1)')
-    # print(a)
-    # dev.off()
 
-	#save dataframe
-    folder_path_df<-paste0(rootpath,'/2nd_writing_SA/response_code/df_QC_GS_',case_run,'/')
-    if (!dir.exists(folder_path_df)) {
-      dir.create(folder_path_df)
-    }
-    write.csv(df_QC_GS,file = paste0(folder_path_df,site,'_df_QC_GS_',sd,'.csv'),row.names = F)
-	#save legacy effects and their uncertainty
-    folder_path_results<-paste0(rootpath,'/2nd_writing_SA/response_code/results_',case_run,'/')
-    if (!dir.exists(folder_path_results)) {
-      dir.create(folder_path_results)
-    }
-    write.csv(diff_normal_GPP,file = paste0(folder_path_results,site,'_diff_normal_GPP_ending_',sd,'.csv'),row.names = F)
-    write.csv(diff_legacy_GPP,file = paste0(folder_path_results,site,'_diff_legacy_GPP_ending_',sd,'.csv'),row.names = F)
-
-    
   }, error = function(e) {
     folder_path_error<-paste0(rootpath,'/2nd_writing_SA/response_code/error_',case_run,'/')
     if (!dir.exists(folder_path_error)) {
